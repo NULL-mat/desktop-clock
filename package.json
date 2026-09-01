@@ -1,0 +1,38 @@
+{
+  "name": "desktop-clock",
+  "version": "1.0.0",
+  "description": "简洁的置顶桌面数字时钟",
+  "author": "hp",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "build": "electron-builder --win portable"
+  },
+  "devDependencies": {
+    "electron": "^33.2.0",
+    "electron-builder": "^25.1.8"
+  },
+  "build": {
+    "appId": "com.hp.desktop-clock",
+    "productName": "DesktopClock",
+    "directories": {
+      "output": "dist"
+    },
+    "win": {
+      "target": [
+        "portable"
+      ],
+      "icon": "assets/icon.png"
+    },
+    "files": [
+      "main.js",
+      "index.html",
+      "style.css",
+      "clock.js",
+      "assets/icon.jpg"
+    ],
+    "portable": {
+      "artifactName": "DesktopClock-${version}.exe"
+    }
+  }
+}
