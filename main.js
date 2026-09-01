@@ -15,8 +15,7 @@ const THEMES = [
   { key: 'light', label: '极简白' },
   { key: 'flip', label: '翻页钟' },
   { key: 'neon', label: '霓虹' },
-  { key: 'terminal', label: '终端绿' },
-  { key: 'glass', label: '玻璃拟态' }
+  { key: 'terminal', label: '终端绿' }
 ];
 const FONTS = [
   { key: 'system', label: '系统' },
@@ -94,7 +93,6 @@ function isAutoLaunchEnabled() {
 
 function broadcast() {
   const s = store.data;
-  applyAcrylic();
   applyOledShift();
   if (win && !win.isDestroyed()) win.webContents.send('settings-changed', s);
   if (settingsWin && !settingsWin.isDestroyed()) settingsWin.webContents.send('settings-changed', s);
@@ -113,15 +111,6 @@ function applyClickThrough() {
 }
 
 const OLED_STEPS = [[1, 0], [0, 1], [-1, 0], [0, -1]];
-
-function applyAcrylic() {
-  if (!win || win.isDestroyed()) return;
-  try {
-    win.setBackgroundMaterial(store.data.acrylic ? 'acrylic' : 'none');
-  } catch {
-    // 透明窗口或非 Win11 不支持原生亚克力，视觉由 CSS .acrylic 兜底
-  }
-}
 
 function applyOledShift() {
   if (oledTimer) { clearInterval(oledTimer); oledTimer = null; }

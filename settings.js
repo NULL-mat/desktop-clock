@@ -29,7 +29,7 @@ const DEFAULTS = {
   customTheme: null
 };
 
-const THEMES = ['auto', 'dark', 'light', 'flip', 'neon', 'terminal', 'glass'];
+const THEMES = ['auto', 'dark', 'light', 'flip', 'neon', 'terminal'];
 const FONTS = ['system', 'mono', 'serif', 'geo'];
 const CHIMES = [0, 15, 30, 60];
 const TIMEZONES = [

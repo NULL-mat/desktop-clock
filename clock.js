@@ -275,7 +275,8 @@
     if (!settings.countdownEnd) finishedNotified = false;
     const eff = Math.round((s.fontSize || 64) * (s.scale || 1));
     clockEl.style.setProperty('--fs', eff + 'px');
-    clockEl.style.setProperty('--bg-alpha', s.opacity);
+    // 玻璃拟态开启时降低背景不透明度，叠加 CSS 高光与边框，保留背景色作为着色
+    clockEl.style.setProperty('--bg-alpha', s.acrylic ? Math.min(s.opacity, 0.32) : s.opacity);
     clockEl.dataset.theme = settings.theme || 'auto';
     clockEl.dataset.font = settings.font || 'system';
 
