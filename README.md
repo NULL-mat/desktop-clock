@@ -31,6 +31,10 @@
 - 单实例：重复启动只会唤起已有窗口
 - 防时间漂移：对齐系统时间整秒/整分触发，长时间挂机不偏移
 
+## 竞品调研
+
+竞品分析、功能对比矩阵与改进路线图见 [`research/desktop-clock-research.html`](research/desktop-clock-research.html)（下载后在浏览器中打开）。
+
 ## 使用
 
 从 [Releases](../../releases) 下载 `DesktopClock-x.x.x.exe`，双击即可运行，无需安装。
