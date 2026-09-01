@@ -1,9 +1,13 @@
 const { app, BrowserWindow, Tray, Menu, ipcMain, screen, dialog, globalShortcut } = require('electron');
 const path = require('path');
+const fs = require('fs');
 const store = require('./settings');
 
 let win = null;
 let tray = null;
+let settingsWin = null;
+let oledTimer = null;
+let oledStep = 0;
 
 const THEMES = [
   { key: 'auto', label: '跟随系统' },
@@ -11,7 +15,8 @@ const THEMES = [
   { key: 'light', label: '极简白' },
   { key: 'flip', label: '翻页钟' },
   { key: 'neon', label: '霓虹' },
-  { key: 'terminal', label: '终端绿' }
+  { key: 'terminal', label: '终端绿' },
+  { key: 'glass', label: '玻璃拟态' }
 ];
 const FONTS = [
   { key: 'system', label: '系统' },
@@ -37,6 +42,14 @@ const CHIMES = [
   { key: 15, label: '每 15 分钟' },
   { key: 30, label: '每 30 分钟' },
   { key: 60, label: '每小时' }
+];
+const FORMATS = [
+  { key: '', label: '默认' },
+  { key: 'HH:mm:ss', label: 'HH:mm:ss' },
+  { key: 'hh:mm:ss tt', label: 'hh:mm:ss tt' },
+  { key: 'yyyy-MM-dd HH:mm', label: 'yyyy-MM-dd HH:mm' },
+  { key: 'MM-dd ddd HH:mm', label: 'MM-dd ddd HH:mm' },
+  { key: 'HH:mm', label: 'HH:mm（仅时分）' }
 ];
 
 function isOnScreen(x, y) {
@@ -80,7 +93,11 @@ function isAutoLaunchEnabled() {
 }
 
 function broadcast() {
-  if (win && !win.isDestroyed()) win.webContents.send('settings-changed', store.data);
+  const s = store.data;
+  applyAcrylic();
+  applyOledShift();
+  if (win && !win.isDestroyed()) win.webContents.send('settings-changed', s);
+  if (settingsWin && !settingsWin.isDestroyed()) settingsWin.webContents.send('settings-changed', s);
   refreshTray();
 }
 
@@ -93,6 +110,73 @@ function applyClickThrough() {
   if (win && !win.isDestroyed()) {
     win.setIgnoreMouseEvents(store.data.clickThrough);
   }
+}
+
+const OLED_STEPS = [[1, 0], [0, 1], [-1, 0], [0, -1]];
+
+function applyAcrylic() {
+  if (!win || win.isDestroyed()) return;
+  try {
+    win.setBackgroundMaterial(store.data.acrylic ? 'acrylic' : 'none');
+  } catch {
+    // 透明窗口或非 Win11 不支持原生亚克力，视觉由 CSS .acrylic 兜底
+  }
+}
+
+function applyOledShift() {
+  if (oledTimer) { clearInterval(oledTimer); oledTimer = null; }
+  oledStep = 0;
+  if (!store.data.oledShift || !win || win.isDestroyed()) return;
+  oledTimer = setInterval(() => {
+    if (!win || win.isDestroyed() || !store.data.oledShift) return;
+    oledStep = (oledStep + 1) % OLED_STEPS.length;
+    const [dx, dy] = OLED_STEPS[oledStep];
+    const [x, y] = win.getPosition();
+    win.setPosition(x + dx, y + dy);
+  }, 60000);
+}
+
+function pickJsonTheme() {
+  if (!win || win.isDestroyed()) return;
+  dialog.showOpenDialog(win, {
+    title: '导入主题 JSON',
+    properties: ['openFile'],
+    filters: [{ name: 'JSON', extensions: ['json'] }]
+  }).then((r) => {
+    if (r.canceled || !r.filePaths[0]) return;
+    try {
+      const obj = JSON.parse(fs.readFileSync(r.filePaths[0], 'utf8'));
+      if (obj && typeof obj === 'object' && !Array.isArray(obj)) {
+        store.set({ customTheme: obj });
+        broadcast();
+      }
+    } catch {
+      // 非法 JSON 静默忽略
+    }
+  });
+}
+
+function openSettings() {
+  if (settingsWin && !settingsWin.isDestroyed()) {
+    settingsWin.show();
+    settingsWin.focus();
+    return;
+  }
+  settingsWin = new BrowserWindow({
+    width: 440,
+    height: 700,
+    resizable: false,
+    autoHideMenuBar: true,
+    title: '桌面时钟 · 设置',
+    backgroundColor: '#1e1e26',
+    webPreferences: {
+      contextIsolation: true,
+      nodeIntegration: false,
+      preload: path.join(__dirname, 'preload.js')
+    }
+  });
+  settingsWin.loadFile('settings.html');
+  settingsWin.on('closed', () => { settingsWin = null; });
 }
 
 function startCountdown(minutes) {
@@ -127,6 +211,15 @@ function buildMenu() {
     { type: 'separator' },
     { label: '显示秒', type: 'checkbox', checked: s.showSeconds, click: (item) => { store.set({ showSeconds: item.checked }); broadcast(); } },
     { label: '显示日期', type: 'checkbox', checked: s.showDate, click: (item) => { store.set({ showDate: item.checked }); broadcast(); } },
+    {
+      label: '时间格式',
+      submenu: FORMATS.map((f) => ({
+        label: f.label,
+        type: 'radio',
+        checked: s.timeFormat === f.key,
+        click: () => { store.set({ timeFormat: f.key }); broadcast(); }
+      }))
+    },
     { type: 'separator' },
     {
       label: '主题',
@@ -157,12 +250,15 @@ function buildMenu() {
     },
     {
       label: '背景颜色',
-      submenu: COLORS.map((c) => ({
-        label: c.label,
-        type: 'radio',
-        checked: s.bgColor === c.key,
-        click: () => { store.set({ bgColor: c.key }); broadcast(); }
-      }))
+      submenu: [
+        { label: '无（透明）', type: 'radio', checked: s.bgColor === 'none', click: () => { store.set({ bgColor: 'none' }); broadcast(); } },
+        ...COLORS.map((c) => ({
+          label: c.label,
+          type: 'radio',
+          checked: s.bgColor === c.key,
+          click: () => { store.set({ bgColor: c.key }); broadcast(); }
+        }))
+      ]
     },
     {
       label: '背景图片',
@@ -171,6 +267,21 @@ function buildMenu() {
         ...(s.bgImage ? [{ label: '清除背景图', click: () => { store.set({ bgImage: '' }); broadcast(); } }] : [])
       ]
     },
+    { type: 'separator' },
+    { label: '翻页动画', type: 'checkbox', checked: s.flipAnimation, click: (item) => { store.set({ flipAnimation: item.checked }); broadcast(); } },
+    { label: '玻璃拟态', type: 'checkbox', checked: s.acrylic, click: (item) => { store.set({ acrylic: item.checked }); broadcast(); } },
+    { label: 'OLED 防烧屏', type: 'checkbox', checked: s.oledShift, click: (item) => { store.set({ oledShift: item.checked }); broadcast(); } },
+    {
+      label: '第二时区',
+      submenu: store.TIMEZONES.map((tz) => ({
+        label: tz.label,
+        type: 'radio',
+        checked: s.timezone2 === tz.key,
+        click: () => { store.set({ timezone2: tz.key }); broadcast(); }
+      }))
+    },
+    { label: '导入主题 JSON…', click: pickJsonTheme },
+    { label: '打开设置面板…', click: openSettings },
     { type: 'separator' },
     {
       label: '字号',
@@ -350,6 +461,10 @@ ipcMain.on('setting-set', (_e, patch) => {
 });
 
 ipcMain.on('pick-background', () => pickBackground());
+
+ipcMain.on('pick-json-theme', () => pickJsonTheme());
+
+ipcMain.on('open-settings', () => openSettings());
 
 ipcMain.on('countdown-finished', () => {
   store.set({ countdownEnd: null });

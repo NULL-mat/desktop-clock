@@ -20,12 +20,27 @@ const DEFAULTS = {
   bgImage: '',
   clickThrough: false,
   chimeInterval: 0,
-  countdownEnd: null
+  countdownEnd: null,
+  flipAnimation: false,
+  acrylic: false,
+  oledShift: false,
+  timezone2: '',
+  timeFormat: '',
+  customTheme: null
 };
 
-const THEMES = ['auto', 'dark', 'light', 'flip', 'neon', 'terminal'];
+const THEMES = ['auto', 'dark', 'light', 'flip', 'neon', 'terminal', 'glass'];
 const FONTS = ['system', 'mono', 'serif', 'geo'];
 const CHIMES = [0, 15, 30, 60];
+const TIMEZONES = [
+  { key: '', label: '关闭' },
+  { key: 'Asia/Shanghai', label: '北京 (GMT+8)' },
+  { key: 'Asia/Tokyo', label: '东京 (GMT+9)' },
+  { key: 'Europe/London', label: '伦敦 (GMT+0)' },
+  { key: 'America/New_York', label: '纽约 (GMT-5)' },
+  { key: 'America/Los_Angeles', label: '洛杉矶 (GMT-8)' },
+  { key: 'UTC', label: 'UTC' }
+];
 
 let data = { ...DEFAULTS };
 
@@ -44,6 +59,21 @@ function sanitize(s) {
   s.bgImage = typeof s.bgImage === 'string' ? s.bgImage : '';
   s.clickThrough = !!s.clickThrough;
   s.chimeInterval = CHIMES.includes(s.chimeInterval) ? s.chimeInterval : 0;
+  s.flipAnimation = !!s.flipAnimation;
+  s.acrylic = !!s.acrylic;
+  s.oledShift = !!s.oledShift;
+  s.timezone2 = typeof s.timezone2 === 'string' ? s.timezone2 : '';
+  if (s.timezone2 && !TIMEZONES.some((t) => t.key === s.timezone2)) s.timezone2 = '';
+  s.timeFormat = typeof s.timeFormat === 'string' ? s.timeFormat.slice(0, 80) : '';
+  if (s.customTheme && typeof s.customTheme === 'object') {
+    const ct = {};
+    ['bgRgb', 'textColor', 'glow', 'font'].forEach((k) => {
+      if (typeof s.customTheme[k] === 'string') ct[k] = s.customTheme[k];
+    });
+    s.customTheme = Object.keys(ct).length ? ct : null;
+  } else {
+    s.customTheme = null;
+  }
   // 过期倒计时在加载/保存时自动清空
   if (typeof s.countdownEnd === 'number' && s.countdownEnd <= Date.now()) s.countdownEnd = null;
   if (s.countdownEnd != null && typeof s.countdownEnd !== 'number') s.countdownEnd = null;
@@ -76,4 +106,4 @@ function set(patch) {
   return data;
 }
 
-module.exports = { load, save, set, get data() { return data; } };
+module.exports = { load, save, set, get data() { return data; }, TIMEZONES };

@@ -116,3 +116,68 @@ body.locked #clock {
 #date.hidden {
   display: none;
 }
+
+/* ===== 玻璃拟态主题 ===== */
+#clock[data-theme='glass'] {
+  --bg-rgb: 60, 60, 68;
+  --text-c: #f5f5f7;
+  --glow: none;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0.06));
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.35);
+}
+@media (prefers-color-scheme: light) {
+  #clock[data-theme='glass'] { --bg-rgb: 255, 255, 255; --text-c: #1d1d1f; }
+}
+
+/* ===== 亚克力材质（acrylic 开关） ===== */
+#clock.acrylic {
+  backdrop-filter: blur(16px) saturate(160%);
+  -webkit-backdrop-filter: blur(16px) saturate(160%);
+}
+
+/* ===== 翻页动画 ===== */
+#time.flip-digits {
+  display: inline-flex;
+  align-items: baseline;
+  perspective: 700px;
+}
+#time.flip-digits .d,
+#time.flip-digits .sep {
+  display: inline-block;
+  font-variant-numeric: tabular-nums;
+}
+#time.flip-digits .d {
+  transform-style: preserve-3d;
+  transform-origin: 50% 100%;
+}
+#time.flip-digits .d.flip {
+  animation: flipDigit 0.34s ease-out;
+}
+#time.flip-digits .sep {
+  opacity: 0.65;
+  padding: 0 0.02em;
+}
+@keyframes flipDigit {
+  0% { transform: rotateX(-90deg); opacity: 0.15; }
+  100% { transform: rotateX(0deg); opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  #time.flip-digits .d.flip { animation: none; }
+}
+
+/* ===== 第二时区 ===== */
+#tz {
+  margin-top: 0.12em;
+  font-family: var(--font);
+  font-size: calc(var(--fs) * 0.22);
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  white-space: nowrap;
+  color: var(--text-c);
+  opacity: 0.8;
+}
+#tz.hidden {
+  display: none;
+}

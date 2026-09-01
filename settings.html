@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self'; script-src 'self'; img-src 'self' file: data:">
+  <title>桌面时钟 · 设置</title>
+  <link rel="stylesheet" href="settings.css">
+</head>
+<body>
+  <header>
+    <h1>桌面时钟 · 设置</h1>
+    <p class="sub">所有更改即时生效并自动保存</p>
+  </header>
+
+  <main>
+    <section>
+      <h2>时间显示</h2>
+
+      <div class="row">
+        <span class="label">12 小时制</span>
+        <label class="switch"><input type="checkbox" id="hour12"><span class="slider"></span></label>
+      </div>
+
+      <div class="row">
+        <span class="label">显示秒</span>
+        <label class="switch"><input type="checkbox" id="showSeconds"><span class="slider"></span></label>
+      </div>
+
+      <div class="row">
+        <span class="label">显示日期</span>
+        <label class="switch"><input type="checkbox" id="showDate"><span class="slider"></span></label>
+      </div>
+
+      <div class="row">
+        <span class="label">时间格式</span>
+        <select id="timeFormat">
+          <option value="">默认</option>
+          <option value="HH:mm:ss">HH:mm:ss</option>
+          <option value="hh:mm:ss tt">hh:mm:ss tt</option>
+          <option value="yyyy-MM-dd HH:mm">yyyy-MM-dd HH:mm</option>
+          <option value="MM-dd ddd HH:mm">MM-dd ddd HH:mm</option>
+          <option value="HH:mm">HH:mm（仅时分）</option>
+        </select>
+      </div>
+
+      <div class="row">
+        <span class="label">字号</span>
+        <div class="range-wrap">
+          <input type="range" id="fontSize" min="24" max="200" step="4">
+          <span class="range-val" id="fontSizeVal">64px</span>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <h2>外观</h2>
+
+      <div class="row">
+        <span class="label">主题</span>
+        <select id="theme">
+          <option value="auto">跟随系统</option>
+          <option value="dark">暗夜黑</option>
+          <option value="light">极简白</option>
+          <option value="flip">翻页钟</option>
+          <option value="neon">霓虹</option>
+          <option value="terminal">终端绿</option>
+          <option value="glass">玻璃拟态</option>
+        </select>
+      </div>
+
+      <div class="row">
+        <span class="label">字体</span>
+        <select id="font">
+          <option value="system">系统</option>
+          <option value="mono">等宽</option>
+          <option value="serif">优雅衬线</option>
+          <option value="geo">几何</option>
+        </select>
+      </div>
+
+      <div class="row">
+        <span class="label">文字颜色</span>
+        <select id="textColor">
+          <option value="">跟随主题</option>
+          <option value="#ffffff">白</option>
+          <option value="#1d1d1f">黑</option>
+          <option value="#ff5f56">红</option>
+          <option value="#ff9f0a">橙</option>
+          <option value="#4af626">绿</option>
+          <option value="#3b82f6">蓝</option>
+          <option value="#a78bfa">紫</option>
+          <option value="#22d3ee">青</option>
+        </select>
+      </div>
+
+      <div class="row">
+        <span class="label">背景颜色</span>
+        <select id="bgColor">
+          <option value="none">无（透明）</option>
+          <option value="">跟随主题</option>
+          <option value="#ffffff">白</option>
+          <option value="#1d1d1f">黑</option>
+          <option value="#ff5f56">红</option>
+          <option value="#ff9f0a">橙</option>
+          <option value="#4af626">绿</option>
+          <option value="#3b82f6">蓝</option>
+          <option value="#a78bfa">紫</option>
+          <option value="#22d3ee">青</option>
+        </select>
+      </div>
+
+      <div class="row">
+        <span class="label">背景图片</span>
+        <div class="btn-group">
+          <button id="pickBg">选择…</button>
+          <button id="clearBg" class="ghost">清除</button>
+        </div>
+      </div>
+      <div class="hint" id="bgImageName">未设置</div>
+
+      <div class="row">
+        <span class="label">翻页动画</span>
+        <label class="switch"><input type="checkbox" id="flipAnimation"><span class="slider"></span></label>
+      </div>
+
+      <div class="row">
+        <span class="label">玻璃拟态</span>
+        <label class="switch"><input type="checkbox" id="acrylic"><span class="slider"></span></label>
+      </div>
+
+      <div class="row">
+        <span class="label">自定义主题</span>
+        <div class="btn-group">
+          <button id="pickJson">导入 JSON…</button>
+          <button id="clearJson" class="ghost">清除</button>
+        </div>
+      </div>
+      <div class="hint" id="customThemeName">未导入</div>
+    </section>
+
+    <section>
+      <h2>窗口</h2>
+
+      <div class="row">
+        <span class="label">缩放</span>
+        <select id="scale">
+          <option value="0.5">50%</option>
+          <option value="0.75">75%</option>
+          <option value="1">100%</option>
+          <option value="1.25">125%</option>
+          <option value="1.5">150%</option>
+          <option value="1.75">175%</option>
+          <option value="2">200%</option>
+          <option value="2.25">225%</option>
+          <option value="2.5">250%</option>
+        </select>
+      </div>
+
+      <div class="row">
+        <span class="label">透明度</span>
+        <select id="opacity">
+          <option value="0.2">20%</option>
+          <option value="0.4">40%</option>
+          <option value="0.6">60%</option>
+          <option value="0.8">80%</option>
+          <option value="1">100%</option>
+        </select>
+      </div>
+
+      <div class="row">
+        <span class="label">窗口置顶</span>
+        <label class="switch"><input type="checkbox" id="alwaysOnTop"><span class="slider"></span></label>
+      </div>
+
+      <div class="row">
+        <span class="label">锁定位置</span>
+        <label class="switch"><input type="checkbox" id="locked"><span class="slider"></span></label>
+      </div>
+
+      <div class="row">
+        <span class="label">点击穿透</span>
+        <label class="switch"><input type="checkbox" id="clickThrough"><span class="slider"></span></label>
+      </div>
+
+      <div class="row">
+        <span class="label">OLED 防烧屏</span>
+        <label class="switch"><input type="checkbox" id="oledShift"><span class="slider"></span></label>
+      </div>
+    </section>
+
+    <section>
+      <h2>计时提醒</h2>
+
+      <div class="row">
+        <span class="label">专注倒计时</span>
+        <select id="countdown">
+          <option value="0">关闭</option>
+          <option value="5">5 分钟</option>
+          <option value="10">10 分钟</option>
+          <option value="25">25 分钟</option>
+          <option value="45">45 分钟</option>
+          <option value="60">60 分钟</option>
+        </select>
+      </div>
+
+      <div class="row">
+        <span class="label">整点报时</span>
+        <select id="chimeInterval">
+          <option value="0">关闭</option>
+          <option value="15">每 15 分钟</option>
+          <option value="30">每 30 分钟</option>
+          <option value="60">每小时</option>
+        </select>
+      </div>
+
+      <div class="row">
+        <span class="label">第二时区</span>
+        <select id="timezone2">
+          <option value="">关闭</option>
+          <option value="Asia/Shanghai">北京 (GMT+8)</option>
+          <option value="Asia/Tokyo">东京 (GMT+9)</option>
+          <option value="Europe/London">伦敦 (GMT+0)</option>
+          <option value="America/New_York">纽约 (GMT-5)</option>
+          <option value="America/Los_Angeles">洛杉矶 (GMT-8)</option>
+          <option value="UTC">UTC</option>
+        </select>
+      </div>
+    </section>
+  </main>
+
+  <script src="settings-panel.js"></script>
+</body>
+</html>

@@ -8,6 +8,8 @@ contextBridge.exposeInMainWorld('clock', {
   dragEnd: () => ipcRenderer.send('drag-end'),
   setSetting: (patch) => ipcRenderer.send('setting-set', patch),
   pickBackground: () => ipcRenderer.send('pick-background'),
+  pickJsonTheme: () => ipcRenderer.send('pick-json-theme'),
+  openSettings: () => ipcRenderer.send('open-settings'),
   countdownDone: () => ipcRenderer.send('countdown-finished'),
   onSettings: (cb) => ipcRenderer.on('settings-changed', (_e, s) => cb(s))
 });

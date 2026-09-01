@@ -2,6 +2,7 @@
   const timeEl = document.getElementById('time');
   const ampmEl = document.getElementById('ampm');
   const dateEl = document.getElementById('date');
+  const tzEl = document.getElementById('tz');
   const wrapEl = document.getElementById('wrap');
   const clockEl = document.getElementById('clock');
   const bgEl = document.getElementById('bg');
@@ -23,7 +24,12 @@
     bgImage: '',
     locked: false,
     chimeInterval: 0,
-    countdownEnd: null
+    countdownEnd: null,
+    flipAnimation: false,
+    acrylic: false,
+    timezone2: '',
+    timeFormat: '',
+    customTheme: null
   };
 
   let lastChimeKey = Math.floor(Date.now() / 60000);
@@ -86,9 +92,137 @@
     return pad(m) + ':' + pad(s);
   }
 
+  // ===== 自定义时间格式 =====
+  function formatToken(fmt, d) {
+    const w = ['日', '一', '二', '三', '四', '五', '六'];
+    const h24 = d.getHours();
+    const h12 = h24 % 12 || 12;
+    const tok = {
+      HH: pad(h24), H: String(h24),
+      hh: pad(h12), h: String(h12),
+      mm: pad(d.getMinutes()), m: String(d.getMinutes()),
+      ss: pad(d.getSeconds()), s: String(d.getSeconds()),
+      tt: h24 < 12 ? 'AM' : 'PM', t: h24 < 12 ? 'A' : 'P',
+      yyyy: String(d.getFullYear()), yy: String(d.getFullYear()).slice(-2),
+      MM: pad(d.getMonth() + 1), M: String(d.getMonth() + 1),
+      dd: pad(d.getDate()), d: String(d.getDate()),
+      ddd: '周' + w[d.getDay()]
+    };
+    return String(fmt).replace(/HH|hh|mm|ss|tt|yyyy|yy|ddd|MM|dd|H|h|m|s|M|d|t/g, (k) => (k in tok ? tok[k] : k));
+  }
+
+  // ===== 翻页渲染 =====
+  function useTextMode() {
+    if (timeEl.dataset.mode === 'flip') {
+      delete timeEl.dataset.mode;
+      timeEl.classList.remove('flip-digits');
+      timeEl.textContent = '';
+    }
+  }
+
+  function setFlipDigits(text) {
+    if (timeEl.dataset.mode !== 'flip') {
+      timeEl.dataset.mode = 'flip';
+      timeEl.classList.add('flip-digits');
+      timeEl.textContent = '';
+    }
+    const chars = Array.from(String(text));
+    while (timeEl.childElementCount < chars.length) {
+      timeEl.appendChild(document.createElement('span'));
+    }
+    while (timeEl.childElementCount > chars.length) {
+      timeEl.removeChild(timeEl.lastChild);
+    }
+    chars.forEach((ch, i) => {
+      const el = timeEl.children[i];
+      const isSep = ch === ':';
+      el.className = isSep ? 'sep' : 'd';
+      if (el.textContent !== ch) {
+        el.textContent = ch;
+        if (!isSep) {
+          el.classList.remove('flip');
+          void el.offsetWidth;
+          el.classList.add('flip');
+        }
+      }
+    });
+  }
+
+  function renderDate(now) {
+    if (settings.showDate) {
+      dateEl.textContent = (now.getMonth() + 1) + '月' + now.getDate() + '日 ' + WEEK[now.getDay()];
+      dateEl.classList.remove('hidden');
+    } else {
+      dateEl.classList.add('hidden');
+    }
+  }
+
+  function renderTimeString() {
+    const now = new Date();
+    let h = now.getHours();
+    let ampm = '';
+    if (settings.hour12) {
+      ampm = h < 12 ? 'AM' : 'PM';
+      h = h % 12 || 12;
+      return { text: h + ':' + pad(now.getMinutes()) + (settings.showSeconds ? ':' + pad(now.getSeconds()) : ''), ampm, now };
+    }
+    return { text: pad(h) + ':' + pad(now.getMinutes()) + (settings.showSeconds ? ':' + pad(now.getSeconds()) : ''), ampm, now };
+  }
+
+  function renderClock() {
+    const { text, ampm, now } = renderTimeString();
+    useTextMode();
+    timeEl.textContent = text;
+    ampmEl.textContent = ampm;
+    renderDate(now);
+  }
+
+  function renderFlip() {
+    const { text, ampm, now } = renderTimeString();
+    setFlipDigits(text);
+    ampmEl.textContent = ampm;
+    renderDate(now);
+  }
+
+  function renderFormat() {
+    const now = new Date();
+    useTextMode();
+    timeEl.textContent = formatToken(settings.timeFormat, now);
+    ampmEl.textContent = '';
+    dateEl.classList.add('hidden');
+  }
+
+  function renderTimezone() {
+    if (!settings.timezone2) {
+      tzEl.classList.add('hidden');
+      return;
+    }
+    try {
+      const s = new Intl.DateTimeFormat('zh-CN', {
+        timeZone: settings.timezone2, hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false
+      }).format(new Date());
+      const name = settings.timezone2 === 'UTC' ? 'UTC' : settings.timezone2.split('/').pop();
+      tzEl.textContent = name + ' ' + s;
+      tzEl.classList.remove('hidden');
+    } catch {
+      tzEl.classList.add('hidden');
+    }
+  }
+
+  function chimeIfDue() {
+    if (settings.chimeInterval > 0) {
+      const minute = Math.floor(Date.now() / 60000);
+      if (minute % settings.chimeInterval === 0 && minute !== lastChimeKey) {
+        lastChimeKey = minute;
+        playChime();
+      }
+    }
+  }
+
   function renderCountdown(cd) {
     const rem = cd - Date.now();
     if (rem <= 0) {
+      useTextMode();
       timeEl.textContent = '00:00';
       ampmEl.textContent = '';
       dateEl.textContent = '专注完成';
@@ -100,59 +234,31 @@
       }
       return;
     }
+    useTextMode();
     timeEl.textContent = formatCountdown(rem);
     ampmEl.textContent = '';
     dateEl.textContent = '专注倒计时';
     dateEl.classList.remove('hidden');
   }
 
-  function renderClock() {
-    const now = new Date();
-    let h = now.getHours();
-    let ampm = '';
-
-    if (settings.hour12) {
-      ampm = h < 12 ? 'AM' : 'PM';
-      h = h % 12 || 12;
-    } else {
-      h = pad(h);
-    }
-
-    let t = h + ':' + pad(now.getMinutes());
-    if (settings.showSeconds) t += ':' + pad(now.getSeconds());
-
-    timeEl.textContent = t;
-    ampmEl.textContent = ampm;
-
-    if (settings.showDate) {
-      dateEl.textContent = (now.getMonth() + 1) + '月' + now.getDate() + '日 ' + WEEK[now.getDay()];
-      dateEl.classList.remove('hidden');
-    } else {
-      dateEl.classList.add('hidden');
-    }
-
-    // 整点/间隔报时
-    if (settings.chimeInterval > 0) {
-      const minute = Math.floor(Date.now() / 60000);
-      if (minute % settings.chimeInterval === 0 && minute !== lastChimeKey) {
-        lastChimeKey = minute;
-        playChime();
-      }
-    }
-  }
-
   function render() {
     if (settings.countdownEnd) {
+      tzEl.classList.add('hidden');
       renderCountdown(settings.countdownEnd);
-    } else {
-      renderClock();
+      return;
     }
+    chimeIfDue();
+    if (settings.timeFormat) renderFormat();
+    else if (settings.flipAnimation) renderFlip();
+    else renderClock();
+    renderTimezone();
   }
 
   // 秒数隐藏时按整分对齐刷新；倒计时状态下高频刷新保证流畅
   function nextDelay() {
     if (settings.countdownEnd) return 250;
-    const interval = settings.showSeconds ? 1000 : 60000;
+    const secMode = settings.showSeconds || settings.flipAnimation || /s/i.test(settings.timeFormat || '');
+    const interval = secMode ? 1000 : 60000;
     return interval - (Date.now() % interval) + 12;
   }
 
@@ -176,7 +282,10 @@
     if (s.textColor) clockEl.style.setProperty('--text-c', s.textColor);
     else clockEl.style.removeProperty('--text-c');
 
-    if (s.bgColor) {
+    if (s.bgColor === 'none') {
+      clockEl.style.setProperty('--bg-alpha', '0');
+      clockEl.style.removeProperty('--bg-rgb');
+    } else if (s.bgColor) {
       const rgb = hexToRgb(s.bgColor);
       if (rgb) clockEl.style.setProperty('--bg-rgb', rgb);
       else clockEl.style.removeProperty('--bg-rgb');
@@ -193,6 +302,17 @@
       clockEl.classList.remove('has-bg');
     }
 
+    // JSON 自定义主题：覆盖层，优先级高于文字/背景色与主题
+    if (s.customTheme) {
+      if (s.customTheme.bgRgb) clockEl.style.setProperty('--bg-rgb', s.customTheme.bgRgb);
+      if (s.customTheme.textColor) clockEl.style.setProperty('--text-c', s.customTheme.textColor);
+      if (s.customTheme.glow) clockEl.style.setProperty('--glow', s.customTheme.glow);
+      if (s.customTheme.font) clockEl.dataset.font = s.customTheme.font;
+    } else {
+      clockEl.style.removeProperty('--glow');
+    }
+
+    clockEl.classList.toggle('acrylic', !!s.acrylic);
     document.body.classList.toggle('locked', !!s.locked);
     render();
     requestResize();
