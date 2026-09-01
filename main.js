@@ -1,9 +1,43 @@
-﻿const { app, BrowserWindow, Tray, Menu, ipcMain, screen } = require('electron');
+const { app, BrowserWindow, Tray, Menu, ipcMain, screen, dialog, globalShortcut } = require('electron');
 const path = require('path');
 const store = require('./settings');
 
 let win = null;
 let tray = null;
+
+const THEMES = [
+  { key: 'auto', label: '跟随系统' },
+  { key: 'dark', label: '暗夜黑' },
+  { key: 'light', label: '极简白' },
+  { key: 'flip', label: '翻页钟' },
+  { key: 'neon', label: '霓虹' },
+  { key: 'terminal', label: '终端绿' }
+];
+const FONTS = [
+  { key: 'system', label: '系统' },
+  { key: 'mono', label: '等宽' },
+  { key: 'serif', label: '优雅衬线' },
+  { key: 'geo', label: '几何' }
+];
+const COLORS = [
+  { key: '', label: '跟随主题' },
+  { key: '#ffffff', label: '白' },
+  { key: '#1d1d1f', label: '黑' },
+  { key: '#ff5f56', label: '红' },
+  { key: '#ff9f0a', label: '橙' },
+  { key: '#4af626', label: '绿' },
+  { key: '#3b82f6', label: '蓝' },
+  { key: '#a78bfa', label: '紫' },
+  { key: '#22d3ee', label: '青' }
+];
+const SCALES = [0.5, 0.75, 1, 1.25, 1.5, 2];
+const COUNTDOWNS = [5, 10, 25, 45, 60];
+const CHIMES = [
+  { key: 0, label: '关闭' },
+  { key: 15, label: '每 15 分钟' },
+  { key: 30, label: '每 30 分钟' },
+  { key: 60, label: '每小时' }
+];
 
 function isOnScreen(x, y) {
   return screen.getAllDisplays().some((d) => {
@@ -55,6 +89,36 @@ function setFontSize(v) {
   broadcast();
 }
 
+function applyClickThrough() {
+  if (win && !win.isDestroyed()) {
+    win.setIgnoreMouseEvents(store.data.clickThrough);
+  }
+}
+
+function startCountdown(minutes) {
+  store.set({ countdownEnd: Date.now() + minutes * 60000 });
+  broadcast();
+}
+
+function stopCountdown() {
+  store.set({ countdownEnd: null });
+  broadcast();
+}
+
+function pickBackground() {
+  if (!win || win.isDestroyed()) return;
+  dialog.showOpenDialog(win, {
+    title: '选择背景图片',
+    properties: ['openFile'],
+    filters: [{ name: '图片', extensions: ['png', 'jpg', 'jpeg', 'webp', 'gif'] }]
+  }).then((r) => {
+    if (!r.canceled && r.filePaths[0]) {
+      store.set({ bgImage: r.filePaths[0] });
+      broadcast();
+    }
+  });
+}
+
 function buildMenu() {
   const s = store.data;
   return [
@@ -65,12 +129,65 @@ function buildMenu() {
     { label: '显示日期', type: 'checkbox', checked: s.showDate, click: (item) => { store.set({ showDate: item.checked }); broadcast(); } },
     { type: 'separator' },
     {
+      label: '主题',
+      submenu: THEMES.map((t) => ({
+        label: t.label,
+        type: 'radio',
+        checked: s.theme === t.key,
+        click: () => { store.set({ theme: t.key }); broadcast(); }
+      }))
+    },
+    {
+      label: '字体',
+      submenu: FONTS.map((f) => ({
+        label: f.label,
+        type: 'radio',
+        checked: s.font === f.key,
+        click: () => { store.set({ font: f.key }); broadcast(); }
+      }))
+    },
+    {
+      label: '文字颜色',
+      submenu: COLORS.map((c) => ({
+        label: c.label,
+        type: 'radio',
+        checked: s.textColor === c.key,
+        click: () => { store.set({ textColor: c.key }); broadcast(); }
+      }))
+    },
+    {
+      label: '背景颜色',
+      submenu: COLORS.map((c) => ({
+        label: c.label,
+        type: 'radio',
+        checked: s.bgColor === c.key,
+        click: () => { store.set({ bgColor: c.key }); broadcast(); }
+      }))
+    },
+    {
+      label: '背景图片',
+      submenu: [
+        { label: '选择图片…', click: pickBackground },
+        ...(s.bgImage ? [{ label: '清除背景图', click: () => { store.set({ bgImage: '' }); broadcast(); } }] : [])
+      ]
+    },
+    { type: 'separator' },
+    {
       label: '字号',
       submenu: [
         { label: '增大', click: () => setFontSize(store.data.fontSize + 12) },
         { label: '减小', click: () => setFontSize(store.data.fontSize - 12) },
         { label: '重置', click: () => setFontSize(64) }
       ]
+    },
+    {
+      label: '缩放',
+      submenu: SCALES.map((v) => ({
+        label: Math.round(v * 100) + '%',
+        type: 'radio',
+        checked: Math.abs(s.scale - v) < 0.01,
+        click: () => { store.set({ scale: v }); broadcast(); }
+      }))
     },
     {
       label: '透明度',
@@ -82,7 +199,23 @@ function buildMenu() {
       }))
     },
     { type: 'separator' },
-    { label: '锁定位置', type: 'checkbox', checked: s.locked, click: (item) => { if (item.checked) persistWindow(); store.set({ locked: item.checked }); broadcast(); } },
+    {
+      label: '专注倒计时',
+      submenu: [
+        ...(s.countdownEnd ? [{ label: '停止倒计时', click: stopCountdown }, { type: 'separator' }] : []),
+        ...COUNTDOWNS.map((m) => ({ label: m + ' 分钟', click: () => startCountdown(m) }))
+      ]
+    },
+    {
+      label: '整点报时',
+      submenu: CHIMES.map((c) => ({
+        label: c.label,
+        type: 'radio',
+        checked: s.chimeInterval === c.key,
+        click: () => { store.set({ chimeInterval: c.key }); broadcast(); }
+      }))
+    },
+    { type: 'separator' },
     {
       label: '窗口置顶',
       type: 'checkbox',
@@ -92,6 +225,13 @@ function buildMenu() {
         if (win && !win.isDestroyed()) win.setAlwaysOnTop(item.checked, 'pop-up-menu');
         broadcast();
       }
+    },
+    { label: '锁定位置', type: 'checkbox', checked: s.locked, click: (item) => { if (item.checked) persistWindow(); store.set({ locked: item.checked }); broadcast(); } },
+    {
+      label: '点击穿透',
+      type: 'checkbox',
+      checked: s.clickThrough,
+      click: (item) => { store.set({ clickThrough: item.checked }); applyClickThrough(); broadcast(); }
     },
     { type: 'separator' },
     {
@@ -105,9 +245,10 @@ function buildMenu() {
 }
 
 function estimateBounds(s) {
+  const f = s.fontSize * (s.scale || 1);
   const chars = s.showSeconds ? 8 : 5;
-  const w = Math.round(s.fontSize * 0.62 * chars + (s.hour12 ? s.fontSize * 1.2 : 0)) + 48;
-  const h = Math.round(s.fontSize * 1.25 + (s.showDate ? s.fontSize * 0.55 : 0)) + 36;
+  const w = Math.round(f * 0.62 * chars + (s.hour12 ? f * 1.2 : 0)) + 48;
+  const h = Math.round(f * 1.25 + (s.showDate ? f * 0.55 : 0)) + 36;
   return { width: Math.max(w, 200), height: Math.max(h, 80) };
 }
 
@@ -136,6 +277,7 @@ function createWindow() {
 
   win.setAlwaysOnTop(s.alwaysOnTop !== false, 'pop-up-menu');
   win.loadFile('index.html');
+  if (s.clickThrough) win.setIgnoreMouseEvents(true);
   win.on('moved', persistWindow);
   win.on('closed', () => { win = null; });
 }
@@ -165,7 +307,15 @@ if (!gotLock) {
     store.load();
     createWindow();
     createTray();
+    // 点击穿透的兜底开关：Ctrl+Alt+D 随时切回可交互状态
+    globalShortcut.register('CommandOrControl+Alt+D', () => {
+      store.set({ clickThrough: !store.data.clickThrough });
+      applyClickThrough();
+      broadcast();
+    });
   });
+
+  app.on('will-quit', () => globalShortcut.unregisterAll());
 
   app.on('before-quit', () => {
     if (win && !win.isDestroyed()) {
@@ -193,6 +343,18 @@ function showContextMenu() {
 ipcMain.on('renderer-ready', () => broadcast());
 
 ipcMain.on('show-context-menu', () => showContextMenu());
+
+ipcMain.on('setting-set', (_e, patch) => {
+  store.set(patch);
+  broadcast();
+});
+
+ipcMain.on('pick-background', () => pickBackground());
+
+ipcMain.on('countdown-finished', () => {
+  store.set({ countdownEnd: null });
+  broadcast();
+});
 
 let dragOffset = null;
 let dragTimer = null;

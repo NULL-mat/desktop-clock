@@ -11,14 +11,42 @@ const DEFAULTS = {
   showSeconds: true,
   showDate: false,
   fontSize: 64,
-  opacity: 0.8
+  opacity: 0.8,
+  scale: 1,
+  theme: 'auto',
+  font: 'system',
+  textColor: '',
+  bgColor: '',
+  bgImage: '',
+  clickThrough: false,
+  chimeInterval: 0,
+  countdownEnd: null
 };
+
+const THEMES = ['auto', 'dark', 'light', 'flip', 'neon', 'terminal'];
+const FONTS = ['system', 'mono', 'serif', 'geo'];
+const CHIMES = [0, 15, 30, 60];
 
 let data = { ...DEFAULTS };
 
+function clamp(v, min, max) {
+  return Math.min(max, Math.max(min, Number(v)));
+}
+
 function sanitize(s) {
-  s.fontSize = Math.round(Math.min(200, Math.max(24, Number(s.fontSize) || 64)));
-  s.opacity = Math.min(1, Math.max(0.2, Number(s.opacity) || 0.8));
+  s.fontSize = Math.round(clamp(s.fontSize || 64, 24, 200));
+  s.opacity = clamp(s.opacity || 0.8, 0.2, 1);
+  s.scale = clamp(s.scale || 1, 0.5, 2.5);
+  if (!THEMES.includes(s.theme)) s.theme = 'auto';
+  if (!FONTS.includes(s.font)) s.font = 'system';
+  s.textColor = typeof s.textColor === 'string' ? s.textColor : '';
+  s.bgColor = typeof s.bgColor === 'string' ? s.bgColor : '';
+  s.bgImage = typeof s.bgImage === 'string' ? s.bgImage : '';
+  s.clickThrough = !!s.clickThrough;
+  s.chimeInterval = CHIMES.includes(s.chimeInterval) ? s.chimeInterval : 0;
+  // 过期倒计时在加载/保存时自动清空
+  if (typeof s.countdownEnd === 'number' && s.countdownEnd <= Date.now()) s.countdownEnd = null;
+  if (s.countdownEnd != null && typeof s.countdownEnd !== 'number') s.countdownEnd = null;
   return s;
 }
 

@@ -13,6 +13,9 @@ body {
 #clock {
   --fs: 64px;
   --bg-alpha: 0.8;
+  --bg-rgb: 24, 24, 28;
+  --text-c: #f5f5f7;
+  --glow: none;
   cursor: move;
   height: 100vh;
   box-sizing: border-box;
@@ -20,14 +23,48 @@ body {
   align-items: center;
   justify-content: center;
   border-radius: 18px;
-  background: rgba(24, 24, 28, var(--bg-alpha));
+  background: rgba(var(--bg-rgb), var(--bg-alpha));
 }
+
+/* ===== 主题预设 ===== */
+#clock[data-theme='auto'] { --bg-rgb: 24, 24, 28; --text-c: #f5f5f7; --glow: none; }
+#clock[data-theme='dark'] { --bg-rgb: 24, 24, 28; --text-c: #f5f5f7; --glow: none; }
+#clock[data-theme='light'] { --bg-rgb: 250, 250, 250; --text-c: #1d1d1f; --glow: none; }
+#clock[data-theme='flip'] { --bg-rgb: 0, 0, 0; --text-c: #f5f5f7; --glow: none; }
+#clock[data-theme='neon'] { --bg-rgb: 10, 10, 24; --text-c: #6ee7ff; --glow: 0 0 8px rgba(110, 231, 255, 0.9), 0 0 24px rgba(110, 231, 255, 0.45); }
+#clock[data-theme='terminal'] { --bg-rgb: 0, 12, 0; --text-c: #4af626; --glow: 0 0 6px rgba(74, 246, 38, 0.8); }
+
+@media (prefers-color-scheme: light) {
+  #clock[data-theme='auto'] { --bg-rgb: 250, 250, 250; --text-c: #1d1d1f; }
+}
+
+/* ===== 字体预设 ===== */
+#clock[data-font='system'] { --font: "Segoe UI Variable Display", "Segoe UI", "SF Pro Display", system-ui, sans-serif; }
+#clock[data-font='mono'] { --font: "Cascadia Mono", "Consolas", ui-monospace, monospace; }
+#clock[data-font='serif'] { --font: Georgia, "Times New Roman", serif; }
+#clock[data-font='geo'] { --font: "Century Gothic", "Arial Narrow", "Segoe UI Light", sans-serif; }
 
 body.locked #clock {
   cursor: default;
 }
 
+#bg {
+  position: absolute;
+  inset: 0;
+  border-radius: 18px;
+  background-size: cover;
+  background-position: center;
+  display: none;
+  z-index: 0;
+}
+
+#clock.has-bg #bg {
+  display: block;
+}
+
 #wrap {
+  position: relative;
+  z-index: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -40,23 +77,24 @@ body.locked #clock {
 }
 
 #time {
-  font-family: "Segoe UI Variable Display", "Segoe UI", "SF Pro Display", system-ui, sans-serif;
+  font-family: var(--font);
   font-variant-numeric: tabular-nums;
   font-weight: 600;
   font-size: var(--fs);
   line-height: 1.15;
   letter-spacing: 0.04em;
   white-space: nowrap;
-  color: #f5f5f7;
+  color: var(--text-c);
+  text-shadow: var(--glow);
 }
 
 #ampm {
-  font-family: "Segoe UI Variable Display", "Segoe UI", "SF Pro Display", system-ui, sans-serif;
+  font-family: var(--font);
   font-size: calc(var(--fs) * 0.22);
   font-weight: 600;
   letter-spacing: 0.08em;
   white-space: nowrap;
-  color: #f5f5f7;
+  color: var(--text-c);
   opacity: 0.75;
 }
 
@@ -66,27 +104,15 @@ body.locked #clock {
 
 #date {
   margin-top: 0.12em;
-  font-family: "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif;
+  font-family: var(--font);
   font-size: calc(var(--fs) * 0.28);
   font-weight: 500;
   letter-spacing: 0.14em;
   white-space: nowrap;
-  color: #f5f5f7;
+  color: var(--text-c);
   opacity: 0.85;
 }
 
 #date.hidden {
   display: none;
-}
-
-@media (prefers-color-scheme: light) {
-  #clock {
-    background: rgba(250, 250, 250, var(--bg-alpha));
-  }
-
-  #time,
-  #ampm,
-  #date {
-    color: #1d1d1f;
-  }
 }

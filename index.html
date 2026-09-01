@@ -2,12 +2,13 @@
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self'; script-src 'self'">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self'; script-src 'self'; img-src 'self' file: data:">
   <title>桌面时钟</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <main id="clock" aria-label="当前时间">
+  <main id="clock" aria-label="当前时间" data-theme="auto" data-font="system">
+    <div id="bg"></div>
     <div id="wrap">
       <div class="line">
         <time id="time">--:--:--</time>
