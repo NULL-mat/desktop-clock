@@ -1,6 +1,6 @@
 {
   "name": "desktop-clock",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "简洁的置顶桌面数字时钟",
   "author": "hp",
   "main": "main.js",
@@ -26,6 +26,8 @@
     },
     "files": [
       "main.js",
+      "settings.js",
+      "preload.js",
       "index.html",
       "style.css",
       "clock.js",

@@ -8,7 +8,13 @@
 </head>
 <body>
   <main id="clock" aria-label="当前时间">
-    <time id="time">--:--:--</time>
+    <div id="wrap">
+      <div class="line">
+        <time id="time">--:--:--</time>
+        <span id="ampm"></span>
+      </div>
+      <div id="date" class="hidden"></div>
+    </div>
   </main>
   <script src="clock.js"></script>
 </body>
